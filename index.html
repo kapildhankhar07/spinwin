@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Spin & Win</title>
+  <meta charset="UTF-8" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
+      font-family: 'Arial', sans-serif;
+      color: white;
+      text-align: center;
+      padding: 40px;
+    }
+    .wheel {
+      width: 200px;
+      height: 200px;
+      border: 10px solid #fff;
+      border-radius: 50%;
+      margin: 30px auto;
+      position: relative;
+      background: conic-gradient(
+        #f39c12 0% 16.66%,
+        #e74c3c 16.66% 33.33%,
+        #2ecc71 33.33% 50%,
+        #3498db 50% 66.66%,
+        #9b59b6 66.66% 83.33%,
+        #1abc9c 83.33% 100%
+      );
+      animation: spin 3s linear infinite paused;
+    }
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      background-color: #e67e22;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    #result, #coins, #ref {
+      margin-top: 20px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 Spin & Win</h1>
+  <div class="wheel" id="wheel"></div>
+  <button onclick="spin()">Spin Now</button>
+  <button onclick="claimDaily()">Daily Bonus</button>
+  <button onclick="showLeaderboard()">Leaderboard</button>
+  <div id="result"></div>
+  <div id="coins"></div>
+  <div id="ref"></div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    const userId = new URLSearchParams(window.location.search).get('id');
+
+    async function spin() {
+      const wheel = document.getElementById("wheel");
+      wheel.style.animationPlayState = 'running';
+      setTimeout(() => { wheel.style.animationPlayState = 'paused'; }, 3000);
+
+      const res = await fetch("https://your-replit-url.replit.app/api/spin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId })
+      });
+      const data = await res.json();
+
+      if (data.cooldown !== undefined) {
+        document.getElementById("result").innerText = `Wait ${data.cooldown}s to spin again`;
+      } else {
+        document.getElementById("result").innerText = `🎉 You won: ${data.prize} coins`;
+        document.getElementById("coins").innerText = `💰 Coins: ${data.total}`;
+        document.getElementById("ref").innerHTML = `👥 Refer friends: <a href="${data.ref_link}" style="color:lightblue;">Click here</a>`;
+      }
+    }
+
+    async function claimDaily() {
+      const res = await fetch("https://your-replit-url.replit.app/api/daily", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId })
+      });
+      const data = await res.json();
+
+      if (data.reward) {
+        document.getElementById("result").innerText = `🎁 You got ${data.reward} daily coins!`;
+      } else {
+        document.getElementById("result").innerText = `⏳ Come back in ${Math.floor(data.wait / 60)} min`;
+      }
+    }
+
+    async function showLeaderboard() {
+      const res = await fetch("https://your-replit-url.replit.app/api/leaderboard");
+      const data = await res.json();
+      const list = data.map(u => `👤 ${u.user_id}: ${u.coins} coins`).join("<br>");
+      document.getElementById("result").innerHTML = `<h3>🏆 Top Players:</h3>${list}`;
+    }
+  </script>
+</body>
+</html>
